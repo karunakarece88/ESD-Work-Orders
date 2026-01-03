@@ -132,6 +132,50 @@ const AdminDashboard = ({ hideCreation = false }) => {
                             )}
                         </div>
 
+                        {/* Dashboard Stats / Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+                            {/* Pending */}
+                            <div onClick={() => setActiveTab('PENDING')} className={`p-6 rounded-2xl border-2 transition-all cursor-pointer ${activeTab === 'PENDING' ? 'bg-primary border-primary text-white shadow-xl scale-105' : 'bg-white border-slate-100 hover:border-primary/50'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <Clock size={24} className={`${activeTab === 'PENDING' ? 'text-white' : 'text-slate-400'}`} />
+                                    {filteredOrders.filter(o => o.status === 'PENDING' || o.status === 'FORWARDED').length > 0 && (
+                                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                                            {filteredOrders.filter(o => o.status === 'PENDING' || o.status === 'FORWARDED').length} NEW
+                                        </span>
+                                    )}
+                                </div>
+                                <p className={`text-sm ${activeTab === 'PENDING' ? 'text-white/80' : 'text-slate-500'}`}>Pending Orders</p>
+                                <h3 className="text-3xl font-bold">{filteredOrders.filter(o => o.status === 'PENDING' || o.status === 'FORWARDED').length}</h3>
+                            </div>
+
+                            {/* Completed */}
+                            <div onClick={() => setActiveTab('COMPLETED')} className={`p-6 rounded-2xl border-2 transition-all cursor-pointer ${activeTab === 'COMPLETED' ? 'bg-primary border-primary text-white shadow-xl scale-105' : 'bg-white border-slate-100 hover:border-primary/50'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <CheckCircle size={24} className={`${activeTab === 'COMPLETED' ? 'text-white' : 'text-slate-400'}`} />
+                                </div>
+                                <p className={`text-sm ${activeTab === 'COMPLETED' ? 'text-white/80' : 'text-slate-500'}`}>Completed Orders</p>
+                                <h3 className="text-3xl font-bold">{filteredOrders.filter(o => o.status === 'COMPLETED').length}</h3>
+                            </div>
+
+                            {/* Used Material */}
+                            <div onClick={() => setActiveTab('USED MATERIAL')} className={`p-6 rounded-2xl border-2 transition-all cursor-pointer ${activeTab === 'USED MATERIAL' ? 'bg-primary border-primary text-white shadow-xl scale-105' : 'bg-white border-slate-100 hover:border-primary/50'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <FileText size={24} className={`${activeTab === 'USED MATERIAL' ? 'text-white' : 'text-slate-400'}`} />
+                                </div>
+                                <p className={`text-sm ${activeTab === 'USED MATERIAL' ? 'text-white/80' : 'text-slate-500'}`}>Used Material</p>
+                                <h3 className="text-3xl font-bold">{filteredOrders.filter(o => o.status === 'COMPLETED' && o.materials?.length > 0).length}</h3>
+                            </div>
+
+                            {/* Inventory */}
+                            <div onClick={() => setActiveTab('INVENTORY')} className={`p-6 rounded-2xl border-2 transition-all cursor-pointer ${activeTab === 'INVENTORY' ? 'bg-primary border-primary text-white shadow-xl scale-105' : 'bg-white border-slate-100 hover:border-primary/50'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <Package size={24} className={`${activeTab === 'INVENTORY' ? 'text-white' : 'text-slate-400'}`} />
+                                </div>
+                                <p className={`text-sm ${activeTab === 'INVENTORY' ? 'text-white/80' : 'text-slate-500'}`}>Inventory Items</p>
+                                <h3 className="text-3xl font-bold">0</h3> {/* Placeholder, actual count would come from InventoryView */}
+                            </div>
+                        </div>
+
                         {/* Location Toggles */}
                         <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
                             <button
