@@ -1,23 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PreviousWorkOrders from './components/PreviousWorkOrders'
 import { motion, AnimatePresence } from 'framer-motion'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
+import { auth } from './firebase'
 
 import { Construction, Zap, Wind, Wrench, Hammer, Send, Layout, ChevronRight, Home, Settings } from 'lucide-react'
 import { SECTIONS, DEPARTMENTS, QUARTERS, OUTSIDE_CAMPUS_AREAS } from './constants'
 import { submitWorkOrder, subscribeToOrdersByRequester } from './services/orderService'
 import AdminDashboard from './components/AdminDashboard'
-import { useEffect } from 'react'
 import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react'
 
 function App() {
   const [view, setView] = useState('landing') // landing, submit, admin
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => localStorage.getItem('esd_user_role') === 'esd')
-  const [isRequesterAuthenticated, setIsRequesterAuthenticated] = useState(() => localStorage.getItem('esd_user_role') === 'requester')
-  const [userIdentifier, setUserIdentifier] = useState(() => localStorage.getItem('esd_user_email') || '') // Store the mail ID
-  const [loginEmail, setLoginEmail] = useState('') // For input field
-  const [loginPass, setLoginPass] = useState('') // For input field
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
+  const [isRequesterAuthenticated, setIsRequesterAuthenticated] = useState(false)
+  const [userIdentifier, setUserIdentifier] = useState('')
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPass, setLoginPass] = useState('')
   const [showLogin, setShowLogin] = useState(false)
   const [loginRole, setLoginRole] = useState(null) // 'requester', 'esd'
+
+  // Auth State
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+
   const [step, setStep] = useState(1)
   const [requesterOrders, setRequesterOrders] = useState([])
   const [showRequesterOrders, setShowRequesterOrders] = useState(false)
@@ -58,6 +65,78 @@ function App() {
     return upper;
   };
 
+  // Handle Login/Signup
+  const handleAuthAction = async () => {
+    if (!loginEmail || !loginPass) {
+      setAuthError('Please fill in all fields');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      let userCredential;
+      if (isSignUp) {
+        userCredential = await createUserWithEmailAndPassword(auth, loginEmail, loginPass);
+      } else {
+        userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPass);
+      }
+
+      // Success
+      const user = userCredential.user;
+      setUserIdentifier(user.email);
+
+      // Set role based on context (Simplified logic: Whatever portal they accessed determines their session role)
+      if (loginRole === 'esd') {
+        setIsAdminAuthenticated(true);
+        setView('admin');
+      } else {
+        setIsRequesterAuthenticated(true);
+        setView('submit');
+      }
+
+      setShowLogin(false);
+      setLoginEmail('');
+      setLoginPass('');
+    } catch (err) {
+      console.error(err);
+      let msg = "Authentication failed";
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') msg = "Invalid email or password";
+      if (err.code === 'auth/email-already-in-use') msg = "Email already in use";
+      if (err.code === 'auth/weak-password') msg = "Password should be at least 6 characters";
+      setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Listen to Auth Changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserIdentifier(user.email);
+        // On refresh, we rely on the user manually selecting 'Login' again to define role if we strictly follow Auth?
+        // OR we can persist "Last Role" in localStorage just for the UI View state.
+        const lastRole = localStorage.getItem('esd_last_role');
+        if (lastRole === 'esd') setIsAdminAuthenticated(true);
+        else if (lastRole === 'requester') setIsRequesterAuthenticated(true);
+      } else {
+        setIsAdminAuthenticated(false);
+        setIsRequesterAuthenticated(false);
+        setUserIdentifier('');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Sync Role to LocalStorage for persistence check inside Auth listener
+  useEffect(() => {
+    if (isAdminAuthenticated) localStorage.setItem('esd_last_role', 'esd');
+    else if (isRequesterAuthenticated) localStorage.setItem('esd_last_role', 'requester');
+    else localStorage.removeItem('esd_last_role');
+  }, [isAdminAuthenticated, isRequesterAuthenticated]);
+
   const handleLocationSelect = (loc) => {
     setFormData({ ...formData, location: loc })
     setStep(2)
@@ -67,6 +146,14 @@ function App() {
     setFormData({ ...formData, section: section })
     setStep(3)
   }
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setIsAdminAuthenticated(false);
+    setIsRequesterAuthenticated(false);
+    setUserIdentifier('');
+    setView('landing');
+  };
 
   // Effect to fetch requester orders when logged in
   useEffect(() => {
@@ -108,14 +195,7 @@ function App() {
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    setIsAdminAuthenticated(false)
-                    setIsRequesterAuthenticated(false)
-                    setUserIdentifier('')
-                    localStorage.removeItem('esd_user_email')
-                    localStorage.removeItem('esd_user_role')
-                    setView('landing')
-                  }}
+                  onClick={handleLogout}
                   className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-all"
                 >
                   Logout
@@ -128,6 +208,7 @@ function App() {
                     setLoginRole('requester')
                     setLoginEmail('')
                     setLoginPass('')
+                    setIsSignUp(false)
                     setShowLogin(true)
                   }}
                   className="px-4 py-2 rounded-xl border border-primary/20 hover:bg-primary/5 text-primary text-sm font-bold transition-all"
@@ -139,6 +220,7 @@ function App() {
                     setLoginRole('esd')
                     setLoginEmail('')
                     setLoginPass('')
+                    setIsSignUp(false)
                     setShowLogin(true)
                   }}
                   className="px-4 py-2 rounded-xl bg-esd-dark hover:bg-esd-dark/90 text-white text-sm font-bold transition-all"
@@ -151,13 +233,20 @@ function App() {
         </div>
       </header>
 
-      {/* Admin Login Modal */}
+      {/* Login / Signup Modal */}
       {showLogin && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-esd-dark/80 backdrop-blur-md">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm">
             <h3 className="text-2xl font-bold mb-6 text-esd-dark">
-              {loginRole === 'esd' ? 'ESD / Engineer Login' : 'Requester Login'}
+              {loginRole === 'esd' ? 'ESD / Engineer' : 'Requester'} {isSignUp ? 'Sign Up' : 'Login'}
             </h3>
+
+            {authError && (
+              <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-100">
+                {authError}
+              </div>
+            )}
+
             <div className="space-y-4">
               <input
                 type="email"
@@ -174,57 +263,34 @@ function App() {
                 value={loginPass}
                 onChange={(e) => setLoginPass(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (!loginEmail) return alert("Please enter Mail ID")
-                    if (loginRole === 'esd' && loginPass === 'esd123') {
-                      setUserIdentifier(loginEmail)
-                      setIsAdminAuthenticated(true)
-                      localStorage.setItem('esd_user_email', loginEmail)
-                      localStorage.setItem('esd_user_role', 'esd')
-                      setShowLogin(false)
-                      setView('admin')
-                    } else if (loginRole === 'requester' && loginPass === 'user123') {
-                      setUserIdentifier(loginEmail)
-                      setIsRequesterAuthenticated(true)
-                      localStorage.setItem('esd_user_email', loginEmail)
-                      localStorage.setItem('esd_user_role', 'requester')
-                      setShowLogin(false)
-                      setView('submit')
-                    } else {
-                      alert("Incorrect Password")
-                    }
-                  }
+                  if (e.key === 'Enter') handleAuthAction();
                 }}
               />
               <button
-                onClick={() => {
-                  if (!loginEmail) return alert("Please enter Mail ID")
-                  if (loginRole === 'esd' && loginPass === 'esd123') {
-                    setUserIdentifier(loginEmail)
-                    setIsAdminAuthenticated(true)
-                    localStorage.setItem('esd_user_email', loginEmail)
-                    localStorage.setItem('esd_user_role', 'esd')
-                    setShowLogin(false)
-                    setView('admin')
-                  } else if (loginRole === 'requester' && loginPass === 'user123') {
-                    setUserIdentifier(loginEmail)
-                    setIsRequesterAuthenticated(true)
-                    localStorage.setItem('esd_user_email', loginEmail)
-                    localStorage.setItem('esd_user_role', 'requester')
-                    setShowLogin(false)
-                    setView('submit')
-                  } else {
-                    alert("Incorrect Password")
-                  }
-                }}
-                className="w-full btn-primary py-3"
+                onClick={handleAuthAction}
+                disabled={authLoading}
+                className="w-full btn-primary py-3 flex items-center justify-center gap-2"
               >
-                Login
+                {authLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {isSignUp ? 'Create Account' : 'Login'}
               </button>
             </div>
-            <p className="text-xs text-slate-400 text-center mt-6">
-              {loginRole === 'esd' ? 'Access restricted to ESD personnel' : 'Use your requester access password'}
-            </p>
+
+            <div className="mt-6 text-center">
+              <p className="text-xs text-slate-400 mb-2">
+                {isSignUp ? 'Already have an account?' : 'Need an account?'}
+              </p>
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setAuthError('');
+                }}
+                className="text-primary font-bold text-sm hover:underline"
+              >
+                {isSignUp ? 'Login Here' : 'Create New Account'}
+              </button>
+            </div>
+
             <button onClick={() => setShowLogin(false)} className="mt-4 w-full text-slate-400 text-sm font-medium">Cancel</button>
           </motion.div>
         </div>
@@ -255,6 +321,7 @@ function App() {
                   if (isRequesterAuthenticated) setView('submit')
                   else {
                     setLoginRole('requester')
+                    setIsSignUp(false)
                     setShowLogin(true)
                   }
                 }}
