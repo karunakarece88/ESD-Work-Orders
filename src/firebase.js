@@ -6,12 +6,12 @@ import { getAuth } from "firebase/auth";
 // Since the USER mentioned having separate passwords, I will assume Firebase Auth will be used.
 // Firebase configuration using credentials provided by the USER
 const firebaseConfig = {
-    apiKey: "AIzaSyADO94lAUjFIwo65T7EdavGlCdMIXy_8Q0",
-    authDomain: "esd-work-orders.firebaseapp.com",
-    projectId: "esd-work-orders",
-    storageBucket: "esd-work-orders.appspot.com",
-    messagingSenderId: "666855774568",
-    appId: "1:666855774568:web:356ea2e7abfe5897875edd"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
