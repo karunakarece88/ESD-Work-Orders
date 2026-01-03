@@ -1,0 +1,16 @@
+
+To sign in to the Firebase CLI:
+
+1. Take note of your session ID:
+
+   [1mCD101[22m
+
+2. Visit the URL below on any device and follow the instructions to get your code:
+
+   https://auth.firebase.tools/login?code_challenge=yD3YcI3zrhDhqqRl1489cfiz8pd29rBjA2NgRNxIOIM&session=cd101460-c012-4b42-85e3-c7b2a0d813e0&attest=rJG2ztV03FZKRgvf1Twk74ktKejf4jH_N5CfiX3FEVM
+
+3. Paste or enter the authorization code below once you have it:
+
+[34m?[39m [1mEnter authorization code:[22m[29G
+[?25h
+[1m[31mError:[39m[22m An unexpected error has occurred.
