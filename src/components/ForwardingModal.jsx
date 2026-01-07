@@ -70,30 +70,57 @@ const ForwardingModal = ({ order, targetSectionName, onCancel, onForward }) => {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input
                                     type="text"
-                                    placeholder="Search materials used..."
-                                    className="input-field pl-10"
+                                    placeholder={order.section === 'electrical' ? "Search electrical materials..." : "Enter material name..."}
+                                    className="input-field pl-10 underline decoration-primary/20"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && order.section !== 'electrical' && searchQuery.trim()) {
+                                            const fullName = searchQuery.trim();
+                                            if (!usedMaterials.find(m => m.name === fullName)) {
+                                                setUsedMaterials([...usedMaterials, { name: fullName, quantity: 1, unit: 'Nos' }]);
+                                            }
+                                            setSearchQuery('');
+                                        }
+                                    }}
                                 />
+                                {order.section !== 'electrical' && searchQuery.trim() && (
+                                    <button
+                                        onClick={() => {
+                                            const fullName = searchQuery.trim();
+                                            if (!usedMaterials.find(m => m.name === fullName)) {
+                                                setUsedMaterials([...usedMaterials, { name: fullName, quantity: 1, unit: 'Nos' }]);
+                                            }
+                                            setSearchQuery('');
+                                        }}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white text-[10px] px-3 py-1.5 rounded-lg font-bold"
+                                    >
+                                        Add
+                                    </button>
+                                )}
                             </div>
 
-                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                {ELECTRICAL_MATERIALS.map(cat => (
-                                    <div key={cat.id}>
-                                        {cat.items.filter(i => `${cat.name} ${i}`.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
-                                            <div
-                                                key={item}
-                                                onClick={() => addMaterial(cat.name, item, cat.unit)}
-                                                className="px-4 py-3 bg-slate-50 rounded-xl mb-1 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
-                                            >
-                                                <span className="text-sm font-medium">{cat.name} - {item}</span>
-                                                <Plus size={16} className="text-primary" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
+                            {order.section === 'electrical' ? (
+                                <div className="space-y-1 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {ELECTRICAL_MATERIALS.map(cat => (
+                                        <div key={cat.id}>
+                                            {cat.items.filter(i => `${cat.name} ${i}`.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
+                                                <div
+                                                    key={item}
+                                                    onClick={() => addMaterial(cat.name, item, cat.unit)}
+                                                    className="px-4 py-2.5 bg-slate-50 rounded-xl mb-1 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors border border-transparent hover:border-primary/20"
+                                                >
+                                                    <span className="text-sm font-medium">{cat.name} - {item}</span>
+                                                    <Plus size={16} className="text-primary" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-[10px] text-slate-400 italic text-center">Type material name and press Enter to add it to the list.</p>
+                            )}
 
                             {usedMaterials.length > 0 && (
                                 <div className="space-y-2 pt-4 border-t border-slate-100">

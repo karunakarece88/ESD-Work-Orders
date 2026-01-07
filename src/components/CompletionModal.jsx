@@ -9,7 +9,10 @@ const CompletionModal = ({ order, onCancel, onComplete }) => {
     const [usedMaterials, setUsedMaterials] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
 
-    const techs = TECHNICIANS.electrical[order.location] || []
+    const [customTech, setCustomTech] = useState('')
+    const techs = TECHNICIANS[order.section]?.[order.location] || []
+
+    const finalTechs = techs.length > 0 ? selectedTechs : (customTech ? [customTech] : [])
 
     const toggleTech = (tech) => {
         if (selectedTechs.includes(tech)) {
@@ -45,54 +48,96 @@ const CompletionModal = ({ order, onCancel, onComplete }) => {
                     <section>
                         <label className="block text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Select Technicians</label>
                         <div className="flex flex-wrap gap-3">
-                            {techs.map(tech => (
-                                <button
-                                    key={tech}
-                                    onClick={() => toggleTech(tech)}
-                                    className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${selectedTechs.includes(tech)
-                                        ? 'border-primary bg-primary text-white'
-                                        : 'border-slate-100 text-slate-500 hover:border-slate-200'
-                                        }`}
-                                >
-                                    {tech}
-                                </button>
-                            ))}
+                            {techs.length > 0 ? (
+                                techs.map(tech => (
+                                    <button
+                                        key={tech}
+                                        onClick={() => toggleTech(tech)}
+                                        className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${selectedTechs.includes(tech)
+                                            ? 'border-primary bg-primary text-white'
+                                            : 'border-slate-100 text-slate-500 hover:border-slate-200'
+                                            }`}
+                                    >
+                                        {tech}
+                                    </button>
+                                ))
+                            ) : (
+                                <input
+                                    type="text"
+                                    placeholder="Enter technician name..."
+                                    className="input-field"
+                                    value={customTech}
+                                    onChange={(e) => setCustomTech(e.target.value)}
+                                />
+                            )}
                         </div>
                     </section>
 
-                    {/* Materials Search - Only for Electrical */}
-                    {order.section === 'electrical' && (
-                        <section>
-                            <label className="block text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Material Used</label>
-                            <div className="relative mb-4">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Search electrical materials..."
-                                    className="input-field pl-10"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
+                    {/* Materials Section */}
+                    <section>
+                        <label className="block text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Material Used</label>
+                        {order.section === 'electrical' ? (
+                            <>
+                                <div className="relative mb-4">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search electrical materials..."
+                                        className="input-field pl-10 underline decoration-primary/20"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
 
-                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                {ELECTRICAL_MATERIALS.map(cat => (
-                                    <div key={cat.id}>
-                                        {cat.items.filter(i => `${cat.name} ${i}`.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
-                                            <div
-                                                key={item}
-                                                onClick={() => addMaterial(cat.name, item, cat.unit)}
-                                                className="px-4 py-3 bg-slate-50 rounded-xl mb-1 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
-                                            >
-                                                <span className="text-sm font-medium">{cat.name} - {item}</span>
-                                                <Plus size={16} className="text-primary" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
+                                <div className="space-y-1 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {ELECTRICAL_MATERIALS.map(cat => (
+                                        <div key={cat.id}>
+                                            {cat.items.filter(i => `${cat.name} ${i}`.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
+                                                <div
+                                                    key={item}
+                                                    onClick={() => addMaterial(cat.name, item, cat.unit)}
+                                                    className="px-4 py-2.5 bg-slate-50 rounded-xl mb-1 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors border border-transparent hover:border-primary/20"
+                                                >
+                                                    <span className="text-sm font-medium">{cat.name} - {item}</span>
+                                                    <Plus size={16} className="text-primary" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Enter material name..."
+                                        className="input-field flex-1"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && searchQuery.trim()) {
+                                                setUsedMaterials([...usedMaterials, { name: searchQuery, quantity: 1, unit: 'Nos' }]);
+                                                setSearchQuery('');
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (searchQuery.trim()) {
+                                                setUsedMaterials([...usedMaterials, { name: searchQuery, quantity: 1, unit: 'Nos' }]);
+                                                setSearchQuery('');
+                                            }
+                                        }}
+                                        className="px-4 bg-primary text-white rounded-xl font-bold transition-transform active:scale-95"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-400 italic">Type material name and press Enter or click Add</p>
                             </div>
-                        </section>
-                    )}
+                        )}
+                    </section>
 
                     {/* Added Materials List */}
                     {usedMaterials.length > 0 && (
@@ -131,8 +176,8 @@ const CompletionModal = ({ order, onCancel, onComplete }) => {
 
                 <div className="p-6 border-t border-slate-100 bg-white sticky bottom-0">
                     <button
-                        disabled={selectedTechs.length === 0}
-                        onClick={() => onComplete({ technicians: selectedTechs, materials: usedMaterials })}
+                        disabled={finalTechs.length === 0}
+                        onClick={() => onComplete({ technicians: finalTechs, materials: usedMaterials })}
                         className="btn-primary w-full py-4 tracking-wide text-base disabled:opacity-50 disabled:translate-y-0"
                     >
                         Mark as Completed

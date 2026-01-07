@@ -1,23 +1,27 @@
 import { useState } from 'react'
 import { Search, Download, Table, Package } from 'lucide-react'
 
-const InventoryView = ({ items = [] }) => {
+const InventoryView = ({ items = [], location = 'lab' }) => {
     const [searchTerm, setSearchTerm] = useState('')
     const [searchBy, setSearchBy] = useState('name') // 'name', 'quarter'
 
     const filteredItems = items.filter(item => {
-        const target = searchBy === 'name' ? item.name : item.quarter
-        return target?.toLowerCase().includes(searchTerm.toLowerCase())
+        if (searchBy === 'name') return item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        const target = item.department || item.quarter || ''
+        return target.toLowerCase().includes(searchTerm.toLowerCase())
     })
 
+    const isLab = location === 'lab'
+    const locationLabel = isLab ? 'Department' : 'Quarter'
+
     const exportToCSV = () => {
-        const headers = ["Date", "Material Name", "Quantity", "Unit", "Quarter/Area"]
+        const headers = ["Date", "Material Name", "Quantity", "Unit", locationLabel]
         const rows = filteredItems.map(item => [
             item.date || new Date().toLocaleDateString(),
             item.name,
             item.quantity,
             item.unit || 'Nos',
-            item.quarter || '-'
+            item.department || item.quarter || '-'
         ])
 
         let csvContent = "data:text/csv;charset=utf-8,"
@@ -46,7 +50,7 @@ const InventoryView = ({ items = [] }) => {
                         onClick={() => setSearchBy('quarter')}
                         className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${searchBy === 'quarter' ? 'bg-primary text-white' : 'text-slate-400'}`}
                     >
-                        By Quarter
+                        By {locationLabel}
                     </button>
                 </div>
 
@@ -55,7 +59,7 @@ const InventoryView = ({ items = [] }) => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                             type="text"
-                            placeholder={`Search by ${searchBy}...`}
+                            placeholder={`Search by ${searchBy === 'name' ? 'Material' : locationLabel}...`}
                             className="input-field pl-10 text-sm py-2"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -78,7 +82,7 @@ const InventoryView = ({ items = [] }) => {
                             <th className="pb-4 px-4">Material Name</th>
                             <th className="pb-4 px-4">Quantity</th>
                             <th className="pb-4 px-4">Latest Date</th>
-                            <th className="pb-4 px-4">Location</th>
+                            <th className="pb-4 px-4">{locationLabel}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -99,7 +103,7 @@ const InventoryView = ({ items = [] }) => {
                                         </span>
                                     </td>
                                     <td className="py-4 px-4 text-xs text-slate-500">{item.date || '-'}</td>
-                                    <td className="py-4 px-4 text-xs font-bold text-slate-400 uppercase">{item.quarter || 'General'}</td>
+                                    <td className="py-4 px-4 text-xs font-bold text-slate-400 uppercase">{item.department || item.quarter || (isLab ? 'N/A' : 'General')}</td>
                                 </tr>
                             ))
                         )}

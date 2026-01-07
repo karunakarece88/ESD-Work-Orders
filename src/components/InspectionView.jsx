@@ -29,7 +29,7 @@ const InspectionView = () => {
                 const flagged = orders.filter(order => {
                     const submittedTime = order.submittedAt?.seconds * 1000 || Date.now();
                     const isOld = submittedTime < threeDaysAgo;
-                    const isExcessivelyForwarded = (order.forwardCount || 0) > 3;
+                    const isExcessivelyForwarded = Number(order.forwardCount || 0) >= 3;
 
                     return isOld || isExcessivelyForwarded;
                 });
@@ -81,7 +81,7 @@ const InspectionView = () => {
                     <p className="text-slate-400">No active orders require inspection.</p>
                 </div>
             ) : (
-                <SummarizedView orders={inspectionOrders} showActions={false} />
+                <SummarizedView items={inspectionOrders} type="INSPECTION" />
             )}
         </motion.div>
     );

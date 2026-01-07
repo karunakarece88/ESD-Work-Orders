@@ -6,6 +6,7 @@
   --color-primary-light: #E5C158;
   --color-esd-blue: #1E40AF;
   --color-esd-dark: #0F172A;
+  --color-gold-soft: #F5E6B8;
 
   --animate-blink: blink 1.5s step-end infinite;
 }
@@ -45,12 +46,31 @@ body {
 }
 
 .btn-primary {
-  background-color: #B99320;
+  background: linear-gradient(135deg, #B99320 0%, #8C6F19 100%);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.75rem;
-  transition: all 0.3s;
+  border-radius: 1rem;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(185, 147, 32, 0.3);
+  border: none;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(185, 147, 32, 0.4);
+}
+
+.text-gold {
+  color: #B99320;
+}
+
+.bg-gold-gradient {
+  background: linear-gradient(135deg, #B99320 0%, #E5C158 50%, #8C6F19 100%);
+}
+
+.gold-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .input-field {
@@ -70,9 +90,28 @@ body {
   border-radius: 1rem;
   cursor: pointer;
   transition: all 0.3s;
+  border: 4px solid var(--primary-gold);
+  background: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 .blinking {
   animation: blink 1.5s step-end infinite;
   color: #DC2626;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+  display: inline-block;
+  min-width: 100%;
 }

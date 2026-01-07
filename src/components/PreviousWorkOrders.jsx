@@ -60,6 +60,11 @@ const PreviousWorkOrders = ({ orders, onClose }) => {
                                             <h4 className="font-bold text-lg text-esd-dark">
                                                 {order.department || order.quarter}
                                             </h4>
+                                            {order.building && (
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-tighter mb-1">
+                                                    {order.building} {order.roomNo ? `| Room: ${order.roomNo}` : ''}
+                                                </div>
+                                            )}
                                             <p className="text-slate-600 text-sm leading-relaxed">
                                                 {order.requirement}
                                             </p>

@@ -19,7 +19,10 @@ export const submitWorkOrder = async (orderData) => {
             const docRef = await addDoc(collection(db, "workOrders"), {
                 ...orderData,
                 status: 'PENDING',
-                requesterEmail: orderData.requesterEmail || 'anonymous',
+                requesterEmail: orderData.requesterEmail || '',
+                requesterPhone: orderData.requesterPhone || '',
+                requesterName: orderData.requesterName || '',
+                attachmentUrl: orderData.attachmentUrl || '',
                 submittedAt: serverTimestamp(),
             });
             return docRef.id;
@@ -49,10 +52,11 @@ export const subscribeToOrders = (section, callback) => {
     });
 };
 
-export const subscribeToOrdersByRequester = (email, callback) => {
+export const subscribeToOrdersByRequester = (identifier, callback) => {
+    const isEmail = identifier && identifier.includes('@');
     const q = query(
         collection(db, "workOrders"),
-        where("requesterEmail", "==", email)
+        where(isEmail ? "requesterEmail" : "requesterPhone", "==", identifier)
     );
     return onSnapshot(q, (querySnapshot) => {
         const orders = [];
@@ -111,34 +115,7 @@ export const subscribeToForwardedFrom = (section, callback) => {
         callback(orders);
     });
 };
-export const addIndent = async (indentData) => {
-    try {
-        const docRef = await addDoc(collection(db, "indents"), {
-            ...indentData,
-            createdAt: serverTimestamp(),
-        });
-        return docRef.id;
-    } catch (e) {
-        console.error("Error adding indent: ", e);
-        throw e;
-    }
-};
 
-export const getIndents = (type, callback) => {
-    const q = query(
-        collection(db, "indents"),
-        where("type", "==", type)
-    );
-    return onSnapshot(q, (querySnapshot) => {
-        const items = [];
-        querySnapshot.forEach((doc) => {
-            items.push({ id: doc.id, ...doc.data() });
-        });
-        // Sort manually by createdAt desc
-        items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-        callback(items);
-    });
-};
 
 export const createGatePass = async (gpData) => {
     try {
@@ -186,4 +163,72 @@ export const restoreWorkOrder = async (orderId) => {
         console.error("Error restoring order: ", e);
         throw e;
     }
+};
+
+/**
+ * Searches for work orders by phone, department, or quarter using prefix matching.
+ */
+export const searchWorkOrders = (searchText, callback) => {
+    if (!searchText) {
+        callback([]);
+        return;
+    }
+
+    const coll = collection(db, "workOrders");
+    const term = searchText.trim();
+    const endTerm = term + '\uf8ff';
+
+    // Helper to get results from a single prefix query
+    const getQueryResults = (field) => {
+        const q = query(
+            coll,
+            where(field, ">=", term),
+            where(field, "<=", endTerm)
+        );
+        return onSnapshot(q, (snapshot) => {
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        });
+    };
+
+    // Since we need to search multiple fields and Firestore doesn't support 
+    // multiple-prefix-field-queries well in a single call, 
+    // we'll run snapshots for each and merge them in the callback.
+    let phoneResults = [];
+    let deptResults = [];
+    let quarterResults = [];
+    let buildingResults = [];
+
+    const updateResults = () => {
+        const merged = [...phoneResults, ...deptResults, ...quarterResults, ...buildingResults];
+        const unique = merged.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
+        unique.sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+        callback(unique);
+    };
+
+    const unsubPhone = onSnapshot(query(coll, where("requesterPhone", ">=", term), where("requesterPhone", "<=", endTerm)), (snap) => {
+        phoneResults = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateResults();
+    });
+
+    const unsubDept = onSnapshot(query(coll, where("department", ">=", term), where("department", "<=", endTerm)), (snap) => {
+        deptResults = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateResults();
+    });
+
+    const unsubQuarter = onSnapshot(query(coll, where("quarter", ">=", term), where("quarter", "<=", endTerm)), (snap) => {
+        quarterResults = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateResults();
+    });
+
+    const unsubBuilding = onSnapshot(query(coll, where("building", ">=", term), where("building", "<=", endTerm)), (snap) => {
+        buildingResults = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updateResults();
+    });
+
+    return () => {
+        unsubPhone();
+        unsubDept();
+        unsubQuarter();
+        unsubBuilding();
+    };
 };

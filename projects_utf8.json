@@ -1,0 +1,17 @@
+﻿{
+  "status": "success",
+  "result": [
+    {
+      "projectId": "work-orders--inventory",
+      "projectNumber": "25020400502",
+      "displayName": "Work Orders -Inventory",
+      "name": "projects/work-orders--inventory",
+      "resources": {
+        "hostingSite": "work-orders--inventory",
+        "realtimeDatabaseInstance": "work-orders--inventory-default-rtdb"
+      },
+      "state": "ACTIVE",
+      "etag": "1_4318dbc7-005d-4cf8-b324-e44ddd523f04"
+    }
+  ]
+}
